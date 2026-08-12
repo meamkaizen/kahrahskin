@@ -1,0 +1,12 @@
+[build]
+  command = "vite build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# Single-page app: everything that is not a file or a function route serves
+# index.html. The /api/* routes are claimed by netlify/functions/api.ts via its
+# exported config.path, which is matched before this catch-all.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

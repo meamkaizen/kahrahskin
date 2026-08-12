@@ -1,5 +1,6 @@
 import React from 'react';
 import logoImage from '../assets/images/kahrah-logo.png';
+import logoImageLight from '../assets/images/kahrah-logo-light.png';
 
 interface BrandLogoProps {
   variant?: 'primary' | 'dark' | 'monogram-only' | 'wordmark-only';
@@ -42,11 +43,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   // favicon and link-preview image.
   const MonogramIcon = (
     <img
-      src={logoImage}
+      src={isDarkBg ? logoImageLight : logoImage}
       width={monogramDimensions.width}
       height={monogramDimensions.height}
       alt="KAHRÀH monogram"
-      className="shrink-0 rounded-[22%] object-contain transition-transform duration-300 hover:scale-105"
+      decoding="async"
+      className="shrink-0 object-contain transition-transform duration-300 hover:scale-105"
       style={{ width: monogramDimensions.width, height: monogramDimensions.height }}
     />
   );

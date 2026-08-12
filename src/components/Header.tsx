@@ -37,8 +37,10 @@ export const Header: React.FC<HeaderProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand Logo */}
+        {/* Before scrolling the header is transparent over the dark hero, so
+            the logo and wordmark switch to their light treatment. */}
         <a href="#" className="group focus:outline-none focus:ring-1 focus:ring-[#8C4A27] rounded-[5px] p-1">
-          <BrandLogo size="md" />
+          <BrandLogo size="md" variant={scrolled ? 'primary' : 'dark'} />
         </a>
 
         {/* Right CTA Action */}
