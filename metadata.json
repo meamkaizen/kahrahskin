@@ -1,0 +1,8 @@
+{
+  "name": "KAHRÀH Skincare",
+  "description": "Pre-launch waitlist & AI skincare diagnostic platform bringing personalized skin health and algorithmic dermatology for diverse skin tones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

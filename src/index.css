@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-radius: 5px;
+    font-style: normal !important;
+  }
+}
+
+@theme {
+  --font-serif: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+
+  /* Milk Creamy Shades */
+  --color-cream: #FAF6F0;
+  --color-cream-dark: #F3ECE1;
+  --color-cream-light: #FFFDF9;
+  --color-cream-border: #E8DFD3;
+
+  /* Ash / Slate Shades */
+  --color-ash: #E2E8F0;
+  --color-ash-light: #F8FAFC;
+  --color-ash-border: #CBD5E1;
+  --color-ash-text: #64748B;
+
+  /* Rich Brown Shades */
+  --color-brown: #8C4A27;
+  --color-brown-dark: #5C2D15;
+  --color-brown-light: #A85A32;
+  --color-espresso: #2C1D18;
+}
+
+@layer utilities {
+  .font-eyebrow {
+    font-family: var(--font-sans);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+/* AI Scan-line pattern background */
+.bg-scan-lines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 19px,
+    rgba(158, 67, 36, 0.05) 20px,
+    transparent 21px
+  );
+}
+
+.bg-dark-scan-lines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 23px,
+    rgba(158, 67, 36, 0.08) 24px,
+    transparent 25px
+  );
+}
+
+/* Scan line laser animation */
+@keyframes scanSweep {
+  0% {
+    top: 0%;
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    top: 98%;
+    opacity: 0.2;
+  }
+}
+
+.animate-scan-sweep {
+  animation: scanSweep 4s ease-in-out infinite alternate;
+}
+
+/* Subtle star pulse animation for signature moment */
+@keyframes starPulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 2px rgba(158, 67, 36, 0.3));
+  }
+  50% {
+    transform: scale(1.15) rotate(12deg);
+    filter: drop-shadow(0 0 8px rgba(158, 67, 36, 0.6));
+  }
+}
+
+.animate-star-pulse {
+  animation: starPulse 6s ease-in-out infinite;
+}
+
+/* Shimmer text or border effect */
+@keyframes warmShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.text-warm-shimmer {
+  background: linear-gradient(90deg, #9E4324 0%, #FAF7F2 50%, #9E4324 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: warmShimmer 5s linear infinite;
+}
+
+/* Focus styles matching Floating/Focused input spec */
+.input-warm-focus:focus-within {
+  border-color: #8C4A27;
+  box-shadow: 0 0 0 3px rgba(140, 74, 39, 0.15);
+}
+
+/* Hide scrollbars for clean UI when needed */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
