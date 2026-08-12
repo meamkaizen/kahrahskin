@@ -380,7 +380,7 @@ async function startServer() {
     app.use(express.static(distPath, { index: false }));
 
     const indexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
-    const configuredUrl = (process.env.APP_URL || "").replace(/\/+$/, "");
+    const configuredUrl = (process.env.APP_URL || "").trim().replace(/\/+$/, "");
 
     app.get("*", (req, res) => {
       // Link previews need absolute og:image / og:url values, so any
