@@ -9,3 +9,6 @@ coverage/
 
 # Local waitlist fallback storage — contains signup emails
 data/
+
+# Exported waitlist CSVs — real people's email addresses, never commit these
+backups/
