@@ -37,6 +37,23 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const store = await getStore();
 
+    // A serverless function's filesystem is thrown away after the request, so
+    // the file fallback would accept a signup and silently lose it. Refuse the
+    // write instead — a visible error is recoverable, a lost email is not.
+    if (store.driver !== "postgres" && req.method === "POST") {
+      console.error(
+        "DATABASE_URL is not set on this deploy — refusing to accept a signup that could not be stored."
+      );
+      return json(
+        {
+          success: false,
+          message: "The waitlist is temporarily unavailable. Please try again shortly.",
+          code: "STORAGE_UNAVAILABLE",
+        },
+        503
+      );
+    }
+
     if (req.method === "GET") {
       if (pathname === "/api/health") {
         return json({ status: "ok", brand: "KAHRÀH Skincare", storage: store.driver });
