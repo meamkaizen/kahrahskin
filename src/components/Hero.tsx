@@ -4,20 +4,10 @@ import { ArrowRight, User, Store, Mail, AlertCircle, Info, Sparkles } from 'luci
 import { isValidEmail } from '../../shared/email';
 import { motion } from 'motion/react';
 import heroBgImage from '../assets/images/hero_cleansing_ritual.jpg';
-import {
-  Scene,
-  PerspectiveCamera,
-  WebGLRenderer,
-  QuadraticBezierCurve3,
-  Vector3,
-  TubeGeometry,
-  ShaderMaterial,
-  Mesh,
-  AdditiveBlending,
-  DoubleSide,
-  Color,
-  PlaneGeometry,
-} from 'three';
+import { useLightMotion } from '../hooks/useLightMotion';
+// Types only — erased at build time. Three.js itself is imported dynamically
+// below so it never lands in the initial bundle.
+import type { Scene, WebGLRenderer } from 'three';
 
 interface HeroProps {
   waitlistCount: number;
@@ -42,6 +32,9 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
   const [errorMessage, setErrorMessage] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
 
+  // Phones and reduced-motion visitors get the still, lightweight version.
+  const lightMotion = useLightMotion();
+
   // Synchronize role if prop changes
   useEffect(() => {
     if (selectedRole) {
@@ -49,17 +42,32 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
     }
   }, [selectedRole]);
 
-  // Countdown timer state
-  const [timeLeft, setTimeLeft] = useState({
-    days: 42,
-    hours: 18,
-    minutes: 34,
-    seconds: 12,
-  });
-
-  // Three.js ambient warm light beam background effect
+  // Ambient WebGL light beams. Three.js is loaded on demand, and only on
+  // larger screens — phones and reduced-motion visitors never download or run
+  // it, which is the single biggest saving on mobile.
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (lightMotion || !mountRef.current) return;
+
+    let cancelled = false;
+    let cleanup = () => {};
+
+    (async () => {
+      const {
+        Scene,
+        PerspectiveCamera,
+        WebGLRenderer,
+        QuadraticBezierCurve3,
+        Vector3,
+        TubeGeometry,
+        ShaderMaterial,
+        Mesh,
+        AdditiveBlending,
+        DoubleSide,
+        Color,
+        PlaneGeometry,
+      } = await import('three');
+
+      if (cancelled || !mountRef.current) return;
 
     const scene = new Scene();
     sceneRef.current = scene;
@@ -68,9 +76,13 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
     const renderer = new WebGLRenderer({
       antialias: true,
       alpha: true,
+      powerPreference: 'low-power',
     });
     rendererRef.current = renderer;
 
+    // Rendering at the full retina pixel count is wasted work for a soft,
+    // out-of-focus background.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0xfaf7f2, 0); // Transparent canvas on top of warm alabaster background
     mountRef.current.appendChild(renderer.domElement);
@@ -102,7 +114,8 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
     ];
 
     curves.forEach((curve, index) => {
-      const tubeGeometry = new TubeGeometry(curve, 200, index === 0 ? 0.7 : 0.5, 32, false);
+      // Fewer segments: these are blurred glows, the extra detail is invisible.
+      const tubeGeometry = new TubeGeometry(curve, 80, index === 0 ? 0.7 : 0.5, 16, false);
 
       const vertexShader = `
         varying vec2 vUv;
@@ -212,7 +225,30 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
       renderer.render(scene, camera);
     };
 
-    animate();
+    const start = () => {
+      if (animationIdRef.current == null) animate();
+    };
+    const stop = () => {
+      if (animationIdRef.current != null) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = undefined;
+      }
+    };
+
+    start();
+
+    // Stop rendering while the tab is in the background.
+    const handleVisibility = () => (document.hidden ? stop() : start());
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Stop rendering once the hero is scrolled past — no point drawing
+    // frames nobody can see.
+    const container = mountRef.current;
+    const observer = new IntersectionObserver(
+      ([entry]) => (entry.isIntersecting ? start() : stop()),
+      { threshold: 0 }
+    );
+    observer.observe(container);
 
     const handleResize = () => {
       if (!camera || !renderer) return;
@@ -223,48 +259,29 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
 
     window.addEventListener('resize', handleResize);
 
-    const container = mountRef.current;
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
-      if (container && renderer.domElement && container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
-      renderer.dispose();
-      scene.traverse((object) => {
-        if (object instanceof Mesh) {
-          object.geometry.dispose();
-          if (object.material instanceof ShaderMaterial) object.material.dispose();
+      cleanup = () => {
+        window.removeEventListener('resize', handleResize);
+        document.removeEventListener('visibilitychange', handleVisibility);
+        observer.disconnect();
+        stop();
+        if (container && renderer.domElement && container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
         }
-      });
-    };
-  }, []);
+        renderer.dispose();
+        scene.traverse((object) => {
+          if (object instanceof Mesh) {
+            object.geometry.dispose();
+            if (object.material instanceof ShaderMaterial) object.material.dispose();
+          }
+        });
+      };
+    })();
 
-  // Countdown timer interval
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { days, hours, minutes, seconds } = prev;
-        if (seconds > 0) {
-          seconds--;
-        } else if (minutes > 0) {
-          minutes--;
-          seconds = 59;
-        } else if (hours > 0) {
-          hours--;
-          minutes = 59;
-          seconds = 59;
-        } else if (days > 0) {
-          days--;
-          hours = 23;
-          minutes = 59;
-          seconds = 59;
-        }
-        return { days, hours, minutes, seconds };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [lightMotion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,6 +333,17 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
     }
   };
 
+  // On phones and for reduced-motion visitors the content is simply present —
+  // no fade-and-rise on load, which is what makes a page feel sluggish.
+  const rise = (delay: number) =>
+    lightMotion
+      ? {}
+      : {
+          initial: { opacity: 0, y: 20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.6, delay, ease: 'easeOut' as const },
+        };
+
   return (
     <section ref={ref} id="waitlist-hero" className="relative pt-20 sm:pt-32 pb-14 sm:pb-20 overflow-hidden bg-[#2C1D18]">
       {/* Background Hero Image */}
@@ -324,6 +352,8 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
           src={heroBgImage}
           alt="Gentle skincare facial cleanse ritual for melanin-rich skin"
           referrerPolicy="no-referrer"
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover object-top sm:object-center"
         />
         {/* Kept light so the photograph stays clearly visible while the
@@ -331,15 +361,15 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
         <div className="absolute inset-0 bg-gradient-to-b from-[#180E0B]/55 via-[#2C1D18]/30 to-[#2C1D18]/70" />
       </div>
 
-      {/* Three.js Ambient Shader Canvas */}
-      <div ref={mountRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-50 mix-blend-screen" style={{ zIndex: 1 }} />
+      {/* Ambient WebGL canvas — mounted on larger screens only */}
+      {!lightMotion && (
+        <div ref={mountRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-50 mix-blend-screen" style={{ zIndex: 1 }} />
+      )}
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Main Hero Title */}
         <motion.h1
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1, ease: [0.215, 0.61, 0.355, 1] }}
+          {...rise(0.1)}
           className="font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[#FFFDF9] tracking-tight leading-[1.1] mb-5 drop-shadow-md"
         >
           Skincare that finally <br className="hidden sm:inline" />
@@ -348,9 +378,7 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
 
         {/* Subhead */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+          {...rise(0.2)}
           className="font-sans text-base sm:text-lg text-[#F5EBE1] max-w-2xl mx-auto leading-relaxed mb-8 drop-shadow-sm font-medium"
         >
           Get early access to KAHRÀH — precision AI skin diagnostics and algorithmic formulation matching built specifically for melanin-rich skin.
@@ -358,10 +386,8 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
 
         {/* Glassmorphism Waitlist Card */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-xl mx-auto bg-white/95 backdrop-blur-xl border border-[#E8DFD3] p-5 sm:p-8 rounded-[5px] shadow-xl relative z-10 text-left"
+          {...rise(0.3)}
+          className="max-w-xl mx-auto bg-white/95 sm:backdrop-blur-xl border border-[#E8DFD3] p-5 sm:p-8 rounded-[5px] shadow-xl relative z-10 text-left"
         >
           {/* Role Toggle Selector */}
           <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-0 bg-[#FAF6F0] p-1.5 rounded-[5px] mb-6 border border-[#E8DFD3]">

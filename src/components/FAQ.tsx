@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { FAQItem } from '../types';
 import { ChevronDown, Search, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLightMotion } from '../hooks/useLightMotion';
 
 export const FAQ: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>('q1');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Phones and reduced-motion visitors get the still version.
+  const lightMotion = useLightMotion();
 
   const faqs: FAQItem[] = [
     {
@@ -115,16 +119,23 @@ export const FAQ: React.FC = () => {
     return haystack.includes(term);
   });
 
+  const reveal = (delay = 0) =>
+    lightMotion
+      ? {}
+      : {
+          initial: { opacity: 0, y: 15 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: { once: true, margin: '-40px' },
+          transition: { duration: 0.4, delay },
+        };
+
   return (
     <section id="faq" className="py-24 bg-[#FAF6F0]/90 backdrop-blur-[2px] border-t border-[#E8DFD3]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          {...reveal()}
           className="text-center max-w-2xl mx-auto mb-12"
         >
           <span className="font-eyebrow text-[#8C4A27] font-bold block mb-3 uppercase tracking-wider text-xs">
@@ -140,10 +151,7 @@ export const FAQ: React.FC = () => {
 
         {/* Search Control */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          {...reveal()}
           className="mb-8"
         >
           <div className="relative">
@@ -170,10 +178,7 @@ export const FAQ: React.FC = () => {
               return (
                 <motion.div
                   key={faq.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-20px' }}
-                  transition={{ duration: 0.4, delay: idx * 0.03 }}
+                  {...reveal(idx * 0.03)}
                   className={`bg-white/95 border rounded-[5px] overflow-hidden transition-all duration-300 ${
                     isOpen
                       ? 'border-[#8C4A27] shadow-sm ring-1 ring-[#8C4A27]/20'

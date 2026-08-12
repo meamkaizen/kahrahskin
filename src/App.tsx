@@ -49,13 +49,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#2C1D18] flex flex-col font-sans selection:bg-[#8C4A27]/20 selection:text-[#2C1D18] relative">
-      {/* Global Background Image Layer */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {/* Global background wash. Hidden on phones: a fixed full-screen image
+          with blend + blur forces the browser to recomposite the whole page on
+          every scroll, and at 20% opacity behind a gradient it is barely
+          visible anyway. */}
+      <div className="hidden md:block fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=2000&q=80"
-          alt="Smooth skin portrait background"
+          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=1600&q=70"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center opacity-20 mix-blend-multiply filter blur-[0.5px]"
+          className="w-full h-full object-cover object-center opacity-20 mix-blend-multiply"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FAF6F0]/80 via-[#FAF6F0]/85 to-[#F3ECE1]/90" />
       </div>
