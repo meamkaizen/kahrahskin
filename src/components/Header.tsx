@@ -7,16 +7,19 @@ interface HeaderProps {
 }
 
 /**
- * Fixed navigation bar.
+ * Transparent navigation bar overlaying the hero.
  *
- * Deliberately static: no scroll listener, no background/padding/logo swap
- * partway down the page, and no entrance animation. It looks identical at
- * every scroll position, which also means one less scroll handler running on
- * mobile.
+ * Positioned absolutely rather than fixed, so it sits on the hero image and
+ * scrolls away with it. A transparent bar that stayed fixed would put its
+ * light logo and text over the pale sections further down, where they would
+ * be unreadable.
+ *
+ * Deliberately static otherwise: no scroll listener, no background or logo
+ * swap partway down, no entrance animation.
  */
 export const Header: React.FC<HeaderProps> = ({ onScrollToWaitlist }) => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-[#FAF6F0] border-b border-[#E8DFD3]">
+    <header className="absolute top-0 left-0 right-0 z-40 bg-transparent">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
         {/* Brand Logo */}
         <a
@@ -26,11 +29,12 @@ export const Header: React.FC<HeaderProps> = ({ onScrollToWaitlist }) => {
         >
           {/* Wrapped rather than passing display classes into BrandLogo, whose
               own inline-flex would otherwise compete with them. */}
+          {/* Light treatment: the bar is transparent over the dark hero. */}
           <span className="flex sm:hidden">
-            <BrandLogo size="sm" showSubtext={false} />
+            <BrandLogo size="sm" variant="dark" showSubtext={false} />
           </span>
           <span className="hidden sm:flex">
-            <BrandLogo size="md" />
+            <BrandLogo size="md" variant="dark" />
           </span>
         </a>
 
