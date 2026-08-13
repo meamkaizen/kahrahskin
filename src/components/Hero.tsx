@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserRole } from '../types';
-import { ArrowRight, User, Store, Mail, AlertCircle, Info, Sparkles } from 'lucide-react';
+import { ArrowRight, User, Store, Mail, AlertCircle, Info } from 'lucide-react';
 import { isValidEmail } from '../../shared/email';
 import { motion } from 'motion/react';
 import heroBgImage from '../assets/images/hero_cleansing_ritual.jpg';
@@ -17,7 +17,6 @@ interface HeroProps {
 }
 
 export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
-  waitlistCount,
   onSuccessRegistration,
   selectedRole = 'seeker',
 }, ref) => {
@@ -381,7 +380,7 @@ export const Hero = React.forwardRef<HTMLDivElement, HeroProps>(({
           {...rise(0.2)}
           className="font-sans text-base sm:text-lg text-[#F5EBE1] max-w-2xl mx-auto leading-relaxed mb-8 drop-shadow-sm font-medium"
         >
-          Get early access to KAHRÀH — precision AI skin diagnostics and algorithmic formulation matching built specifically for melanin-rich skin.
+          Stop guessing what your skin needs. Get personalized skincare recommendations made for your skin, with AI guidance and dermatologist support.
         </motion.p>
 
         {/* Glassmorphism Waitlist Card */}

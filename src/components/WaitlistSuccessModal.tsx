@@ -11,7 +11,7 @@ interface WaitlistSuccessModalProps {
 export const WaitlistSuccessModal: React.FC<WaitlistSuccessModalProps> = ({
   submission,
   onClose,
-  surveyUrl = "https://forms.google.com",
+  surveyUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfA8VxuX-UffZ71L5TFEnVwDN9CRo75cbPCiZOLMh1j_Es7Lg/viewform",
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#231815]/80 backdrop-blur-md overflow-y-auto">
