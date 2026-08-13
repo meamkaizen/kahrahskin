@@ -26,17 +26,32 @@ function config() {
   return { user, pass, fromName, notifyEmail };
 }
 
-function createTransport(user: string, pass: string) {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // upgraded to TLS via STARTTLS
-    auth: { user, pass },
-    // Bounded so a slow SMTP handshake cannot hold up the signup response.
-    connectionTimeout: 8000,
-    greetingTimeout: 8000,
-    socketTimeout: 10000,
-  });
+/**
+ * One pooled transport per process, kept at module scope on purpose.
+ *
+ * Connecting and authenticating to Gmail costs ~4s; reusing the socket brings
+ * later sends down to ~1.5s. Serverless containers are reused between
+ * invocations, so the second signup onward pays only the cheap path.
+ */
+let transport: nodemailer.Transporter | null = null;
+
+function getTransport(user: string, pass: string) {
+  if (!transport) {
+    transport = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // upgraded to TLS via STARTTLS
+      auth: { user, pass },
+      pool: true,
+      maxConnections: 1,
+      // Bounded so a slow handshake cannot hold up the signup response, and
+      // stays well inside Netlify's 10s function limit.
+      connectionTimeout: 7000,
+      greetingTimeout: 7000,
+      socketTimeout: 7000,
+    });
+  }
+  return transport;
 }
 
 function escapeHtml(value: string): string {
@@ -95,18 +110,6 @@ function welcomeHtml(entry: WaitlistEntry): string {
 
       ${body}
 
-      <div style="margin:26px 0;padding:18px;background:#FAF6F0;border:1px solid #E8DFD3;border-radius:8px;">
-        <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.8px;text-transform:uppercase;color:#8C7C72;">
-          Your referral code
-        </p>
-        <p style="margin:0 0 8px;font-size:22px;font-weight:bold;letter-spacing:1.5px;color:#8C4A27;">
-          ${escapeHtml(entry.referralCode)}
-        </p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#64748B;">
-          Know someone whose skin deserves better answers? Pass it along.
-        </p>
-      </div>
-
       <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#4A3B35;">
         Thanks for being early.
       </p>
@@ -139,9 +142,6 @@ function welcomeText(entry: WaitlistEntry): string {
       ? "When vendor onboarding opens we'll be in touch personally about getting your products verified and listed."
       : "Here's what happens next: not much, for a little while. We won't crowd your inbox. When early access opens you'll get one email, and you'll be among the first to try the skin analysis.",
     "",
-    `Your referral code: ${entry.referralCode}`,
-    "Know someone whose skin deserves better answers? Pass it along.",
-    "",
     "Thanks for being early.",
     "— Barakah & the KAHRÀH team",
     "",
@@ -158,13 +158,15 @@ export async function sendWelcomeEmail(entry: WaitlistEntry): Promise<void> {
   const { user, pass, fromName, notifyEmail } = config();
   if (!user || !pass) return; // Not configured — nothing to do.
 
-  const transport = createTransport(user, pass);
-  const from = `"${fromName}" <${user}>`;
-
   try {
-    await transport.sendMail({
-      from,
+    // One message, not two: a second send costs another ~4s and two sends
+    // measured 10.5s, over Netlify's 10s function limit. The owner is blind
+    // copied instead, so they still receive every signup — the To: header
+    // shows who joined.
+    await getTransport(user, pass).sendMail({
+      from: `"${fromName}" <${user}>`,
       to: entry.email,
+      bcc: notifyEmail || undefined,
       subject: "You're on the KAHRÀH list — thank you",
       text: welcomeText(entry),
       html: welcomeHtml(entry),
@@ -172,22 +174,5 @@ export async function sendWelcomeEmail(entry: WaitlistEntry): Promise<void> {
   } catch (err) {
     console.error("[KAHRÀH email] Welcome email failed:", err instanceof Error ? err.message : err);
   }
-
-  if (notifyEmail) {
-    try {
-      await transport.sendMail({
-        from,
-        to: notifyEmail,
-        replyTo: entry.email,
-        subject: `New KAHRÀH signup: ${entry.email}`,
-        text: `${entry.email} joined as ${entry.role === "vendor" ? "a vendor" : "a customer"}.
-Position ${entry.positionNumber} · referral ${entry.referralCode}
-${entry.created_at}`,
-      });
-    } catch (err) {
-      console.error("[KAHRÀH email] Owner notification failed:", err instanceof Error ? err.message : err);
-    }
-  }
-
-  transport.close();
+  // The transport is pooled and deliberately left open for the next signup.
 }

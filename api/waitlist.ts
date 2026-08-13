@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { BASE_COUNTER, getStore, statsFromCounts } from "../server/db";
+import { getStore, statsFromCounts } from "../server/db";
 import { parseSignupBody } from "../server/signup";
 
 /**
@@ -30,14 +30,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { confirmed } = await store.counts();
       return res.status(200).json({
         success: true,
-        count: BASE_COUNTER + confirmed,
+        count: confirmed,
         confirmedSignups: confirmed,
       });
     } catch (err) {
       console.error("Error reading waitlist count:", err);
       return res.status(200).json({
         success: true,
-        count: BASE_COUNTER,
+        count: 0,
         confirmedSignups: 0,
       });
     }

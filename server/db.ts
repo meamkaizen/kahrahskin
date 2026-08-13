@@ -15,8 +15,8 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
  * (WaitlistSubmission in src/types.ts) consumes.
  */
 
-// Initial seed count reflecting early established interest
-export const BASE_COUNTER = 1428;
+// Positions and counts are the real thing: no padding, no seeded head start.
+// Someone told they are number 8 really is the eighth person to sign up.
 
 export type Audience = "enthusiast" | "seeker" | "vendor";
 export type Role = "seeker" | "vendor";
@@ -94,19 +94,14 @@ export function generateConfirmToken(): string {
 }
 
 /**
- * Marketing-facing stats derived from real counts plus the seeded base.
- * The base counter is split 82/18 seeker/vendor so the two figures always
- * add up to the displayed total.
+ * Public stats, straight from the real row counts.
  */
 export function statsFromCounts(counts: WaitlistCounts): WaitlistStats {
-  const totalWaitlistCount = BASE_COUNTER + counts.active;
-  const seededSeekers = Math.round(BASE_COUNTER * 0.82);
-  const seededVendors = BASE_COUNTER - seededSeekers;
   return {
-    totalWaitlistCount,
-    seekerCount: seededSeekers + counts.seekers,
-    vendorCount: seededVendors + counts.vendors,
-    betaSpotsRemaining: Math.max(12, 2000 - totalWaitlistCount),
+    totalWaitlistCount: counts.active,
+    seekerCount: counts.seekers,
+    vendorCount: counts.vendors,
+    betaSpotsRemaining: Math.max(12, 2000 - counts.active),
   };
 }
 
@@ -135,7 +130,7 @@ function rowToEntry(row: Row): WaitlistEntry {
     skinConcerns: Array.isArray(row.skin_concerns) ? row.skin_concerns : [],
     vendorType: row.vendor_type ?? undefined,
     referralCode: row.referral_code ?? generateReferralCode(),
-    positionNumber: BASE_COUNTER + Number(row.seq ?? 0),
+    positionNumber: Number(row.seq ?? 0),
   };
 }
 
@@ -378,7 +373,7 @@ class FileStore implements WaitlistStore {
       skinConcerns: signup.skinConcerns,
       vendorType: signup.vendorType,
       referralCode: generateReferralCode(),
-      positionNumber: BASE_COUNTER + this.entries.length + 1,
+      positionNumber: this.entries.length + 1,
     };
 
     this.entries.push(entry);

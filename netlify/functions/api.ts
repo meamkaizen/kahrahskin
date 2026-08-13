@@ -1,4 +1,4 @@
-import { BASE_COUNTER, getStore, statsFromCounts } from "../../server/db";
+import { getStore, statsFromCounts } from "../../server/db";
 import { parseSignupBody } from "../../server/signup";
 import { sendWelcomeEmail } from "../../server/email";
 
@@ -68,7 +68,7 @@ export default async function handler(req: Request): Promise<Response> {
         const { confirmed } = await store.counts();
         return json({
           success: true,
-          count: BASE_COUNTER + confirmed,
+          count: confirmed,
           confirmedSignups: confirmed,
         });
       }

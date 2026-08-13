@@ -4,7 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { BASE_COUNTER, getStore, statsFromCounts, type WaitlistEntry } from "./server/db";
+import { getStore, statsFromCounts, type WaitlistEntry } from "./server/db";
 import { parseSignupBody } from "./server/signup";
 import { sendWelcomeEmail } from "./server/email";
 
@@ -94,7 +94,7 @@ app.get("/api/waitlist/count", async (req, res) => {
     const { confirmed } = await store.counts();
     res.json({
       success: true,
-      count: BASE_COUNTER + confirmed,
+      count: confirmed,
       confirmedSignups: confirmed,
     });
   } catch (err) {

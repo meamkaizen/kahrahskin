@@ -8,7 +8,7 @@ import { WaitlistSuccessModal } from './components/WaitlistSuccessModal';
 import { PrivacyTermsModal } from './components/PrivacyTermsModal';
 
 export default function App() {
-  const [waitlistCount, setWaitlistCount] = useState(1428);
+  const [waitlistCount, setWaitlistCount] = useState(0);
   const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState<WaitlistSubmission | null>(null);
   const [privacyModalType, setPrivacyModalType] = useState<'privacy' | 'terms' | null>(null);
