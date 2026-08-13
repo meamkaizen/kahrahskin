@@ -1,62 +1,48 @@
+import nodemailer from "nodemailer";
 import type { WaitlistEntry } from "./db";
 
 /**
- * Transactional email for waitlist signups, via Brevo's HTTP API.
+ * Signup emails, sent through Gmail's SMTP with an App Password.
  *
- * HTTP rather than SMTP because serverless platforms often block outbound SMTP
- * ports, and an HTTP call needs no connection pooling or long-lived socket.
+ * Chosen because it needs no domain of your own: Google really is the sender,
+ * so the mail is DMARC-aligned and lands in inboxes. Providers like Brevo and
+ * Resend instead require a domain you control, which a *.netlify.app subdomain
+ * can never be.
  *
- * Entirely optional: with BREVO_API_KEY unset nothing is sent and signups carry
- * on as normal. Sending never blocks or fails a signup — an email that does not
- * arrive is a smaller problem than an email address that was never saved.
+ * Entirely optional: with GMAIL_USER / GMAIL_APP_PASSWORD unset nothing is
+ * sent and signups carry on as normal. Sending never fails a signup — the row
+ * is stored first and errors here are logged, never thrown.
+ *
+ * Free Gmail allows roughly 500 recipients a day, far beyond early waitlist
+ * volume. Moving to a custom domain later is a change to this file only.
  */
 
-const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
-
-interface BrevoContact {
-  email: string;
-  name?: string;
-}
-
 function config() {
-  const apiKey = process.env.BREVO_API_KEY?.trim();
-  const fromEmail = process.env.EMAIL_FROM?.trim();
+  const user = process.env.GMAIL_USER?.trim();
+  const pass = process.env.GMAIL_APP_PASSWORD?.trim().replace(/\s+/g, ""); // Google shows it in groups of four
   const fromName = process.env.EMAIL_FROM_NAME?.trim() || "KAHRÀH Skincare";
-  // Optional: a copy of every signup, so you also hold them outside the database.
+  // Optional: a copy of every signup, so the list also lives in your inbox.
   const notifyEmail = process.env.NOTIFY_EMAIL?.trim();
-  return { apiKey, fromEmail, fromName, notifyEmail };
+  return { user, pass, fromName, notifyEmail };
 }
 
-async function send(to: BrevoContact[], subject: string, htmlContent: string): Promise<boolean> {
-  const { apiKey, fromEmail, fromName } = config();
-  if (!apiKey || !fromEmail) return false;
+function createTransport(user: string, pass: string) {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // upgraded to TLS via STARTTLS
+    auth: { user, pass },
+    // Bounded so a slow SMTP handshake cannot hold up the signup response.
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
+  });
+}
 
-  try {
-    const res = await fetch(BREVO_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "api-key": apiKey,
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({
-        sender: { email: fromEmail, name: fromName },
-        to,
-        subject,
-        htmlContent,
-      }),
-    });
-
-    if (!res.ok) {
-      // Brevo explains rejections (unverified sender, quota) in the body.
-      console.error(`[KAHRÀH email] Brevo returned ${res.status}: ${await res.text()}`);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[KAHRÀH email] Could not reach Brevo:", err);
-    return false;
-  }
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
+  ));
 }
 
 function welcomeHtml(entry: WaitlistEntry): string {
@@ -93,10 +79,18 @@ function welcomeHtml(entry: WaitlistEntry): string {
 </html>`;
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, c => (
-    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
-  ));
+function welcomeText(entry: WaitlistEntry): string {
+  // A plain-text part improves deliverability and serves text-only clients.
+  return [
+    entry.first_name ? `Hi ${entry.first_name},` : "Hi,",
+    "",
+    `Thanks for joining the KAHRÀH waitlist. You're number ${entry.positionNumber} in the queue.`,
+    `Your referral code: ${entry.referralCode}`,
+    "",
+    "We'll email you as soon as early access opens.",
+    "",
+    `You received this because ${entry.email} was entered on the KAHRÀH waitlist.`,
+  ].join("\n");
 }
 
 /**
@@ -104,25 +98,39 @@ function escapeHtml(value: string): string {
  * Always resolves; failures are logged, never thrown.
  */
 export async function sendWelcomeEmail(entry: WaitlistEntry): Promise<void> {
-  const { apiKey, fromEmail, notifyEmail } = config();
-  if (!apiKey || !fromEmail) return; // Not configured — nothing to do.
+  const { user, pass, fromName, notifyEmail } = config();
+  if (!user || !pass) return; // Not configured — nothing to do.
 
-  await send(
-    [{ email: entry.email, name: entry.first_name }],
-    "Welcome to the KAHRÀH waitlist",
-    welcomeHtml(entry)
-  );
+  const transport = createTransport(user, pass);
+  const from = `"${fromName}" <${user}>`;
+
+  try {
+    await transport.sendMail({
+      from,
+      to: entry.email,
+      subject: "Welcome to the KAHRÀH waitlist",
+      text: welcomeText(entry),
+      html: welcomeHtml(entry),
+    });
+  } catch (err) {
+    console.error("[KAHRÀH email] Welcome email failed:", err instanceof Error ? err.message : err);
+  }
 
   if (notifyEmail) {
-    await send(
-      [{ email: notifyEmail }],
-      `New KAHRÀH signup: ${entry.email}`,
-      `<p style="font-family:system-ui,sans-serif;font-size:14px;">
-        <strong>${escapeHtml(entry.email)}</strong> joined as
-        <strong>${entry.role === "vendor" ? "a vendor" : "a customer"}</strong>.<br>
-        Position ${entry.positionNumber} · referral ${escapeHtml(entry.referralCode)}<br>
-        ${escapeHtml(entry.created_at)}
-      </p>`
-    );
+    try {
+      await transport.sendMail({
+        from,
+        to: notifyEmail,
+        replyTo: entry.email,
+        subject: `New KAHRÀH signup: ${entry.email}`,
+        text: `${entry.email} joined as ${entry.role === "vendor" ? "a vendor" : "a customer"}.
+Position ${entry.positionNumber} · referral ${entry.referralCode}
+${entry.created_at}`,
+      });
+    } catch (err) {
+      console.error("[KAHRÀH email] Owner notification failed:", err instanceof Error ? err.message : err);
+    }
   }
+
+  transport.close();
 }
