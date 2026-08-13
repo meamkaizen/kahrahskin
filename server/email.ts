@@ -60,7 +60,7 @@ function escapeHtml(value: string): string {
   ));
 }
 
-function welcomeHtml(entry: WaitlistEntry): string {
+export function welcomeHtml(entry: WaitlistEntry): string {
   const greeting = entry.first_name ? `Hi ${escapeHtml(entry.first_name)},` : "Hi there,";
   const isVendor = entry.role === "vendor";
 
@@ -126,7 +126,7 @@ function welcomeHtml(entry: WaitlistEntry): string {
 </html>`;
 }
 
-function welcomeText(entry: WaitlistEntry): string {
+export function welcomeText(entry: WaitlistEntry): string {
   // A plain-text part improves deliverability and serves text-only clients.
   const isVendor = entry.role === "vendor";
   return [
