@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { BASE_COUNTER, getStore, statsFromCounts, type WaitlistEntry } from "./server/db";
 import { parseSignupBody } from "./server/signup";
+import { sendWelcomeEmail } from "./server/email";
 
 dotenv.config();
 
@@ -142,6 +143,10 @@ app.post("/api/waitlist", async (req, res) => {
     }
 
     console.log(`[KAHRÀH Waitlist] New signup: ${entry.email} | Confirm URL: ${confirmUrl}`);
+
+    // Fire and forget: the signup is already stored, so a slow or failing
+    // email must not delay or break the response.
+    void sendWelcomeEmail(entry);
 
     res.json({
       success: true,

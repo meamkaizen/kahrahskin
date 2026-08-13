@@ -1,5 +1,6 @@
 import { BASE_COUNTER, getStore, statsFromCounts } from "../../server/db";
 import { parseSignupBody } from "../../server/signup";
+import { sendWelcomeEmail } from "../../server/email";
 
 /**
  * The waitlist API on Netlify.
@@ -90,6 +91,13 @@ export default async function handler(req: Request): Promise<Response> {
 
       const { entry, alreadyRegistered } = await store.create(signup);
       const stats = statsFromCounts(await store.counts());
+
+      // Awaited rather than fire-and-forget: a serverless function is frozen
+      // once it responds, so background work would simply never run. Errors are
+      // swallowed inside sendWelcomeEmail, so this cannot fail the signup.
+      if (!alreadyRegistered) {
+        await sendWelcomeEmail(entry);
+      }
 
       return json({
         success: true,
