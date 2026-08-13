@@ -64,36 +64,36 @@ export function welcomeHtml(entry: WaitlistEntry): string {
   const greeting = entry.first_name ? `Hi ${escapeHtml(entry.first_name)},` : "Hi there,";
   const isVendor = entry.role === "vendor";
 
+  const p = 'margin:0 0 16px;font-size:15px;line-height:1.65;color:#4A3B35;';
+  const li = 'margin:0 0 10px;font-size:15px;line-height:1.6;color:#4A3B35;';
+
   const body = isVendor
-    ? `<p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         ${greeting}
+    ? `<p style="${p}">${greeting}</p>
+       <p style="${p}">
+         Thanks for applying to sell on KAHRÀH. You're
+         <strong style="color:#2C1D18;">number ${entry.positionNumber}</strong> on the vendor list.
        </p>
-       <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         Thank you for putting your brand forward. We're building KAHRÀH to be a place where
-         honest formulators get found by the people who actually need them — no bleaching
-         creams, no miracle claims, no paying your way to the top of a list.
-       </p>
-       <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         You're <strong style="color:#2C1D18;">number ${entry.positionNumber}</strong> in line.
-         When vendor onboarding opens we'll be in touch personally about getting your
-         products verified and listed.
+       <p style="${p}">As a verified KAHRÀH vendor you get:</p>
+       <ul style="margin:0 0 16px;padding-left:20px;">
+         <li style="${li}">Your products listed with a <strong style="color:#2C1D18;">KAHRÀH Verified</strong> badge, once ingredients and lab results are checked.</li>
+         <li style="${li}">Customers matched to you by their skin analysis — people already looking for what you make.</li>
+         <li style="${li}">No paid placement. Ranking is by ingredient fit, so you compete on formulation, not ad budget.</li>
+         <li style="${li}">First access to onboarding, before the marketplace opens publicly.</li>
+       </ul>
+       <p style="${p}">
+         We'll contact you directly when vendor onboarding opens, with what's needed to get verified.
        </p>`
-    : `<p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         ${greeting}
+    : `<p style="${p}">${greeting}</p>
+       <p style="${p}">
+         Thanks for joining the KAHRÀH waitlist. You're
+         <strong style="color:#2C1D18;">number ${entry.positionNumber}</strong> in line.
        </p>
-       <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         Thank you, genuinely. Handing over your email is a small thing to do and a real thing
-         to trust someone with, and we don't take it lightly.
+       <p style="${p}">
+         KAHRÀH analyses your skin from a photo and matches you with products suited to it,
+         chosen by ingredients rather than advertising.
        </p>
-       <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         You're <strong style="color:#2C1D18;">number ${entry.positionNumber}</strong> in line.
-         KAHRÀH exists because finding skincare that understands your skin shouldn't mean
-         guesswork, or shelves full of products that were never tested on skin like yours.
-       </p>
-       <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#4A3B35;">
-         Here's what happens next: not much, for a little while. We won't crowd your inbox.
-         When early access opens you'll get one email, and you'll be among the first to try
-         the skin analysis.
+       <p style="${p}">
+         We'll email you once, when early access opens. Nothing before then.
        </p>`;
 
   return `<!DOCTYPE html>
@@ -110,16 +110,13 @@ export function welcomeHtml(entry: WaitlistEntry): string {
 
       ${body}
 
-      <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#4A3B35;">
-        Thanks for being early.
-      </p>
-      <p style="margin:0 0 26px;font-size:15px;line-height:1.7;color:#4A3B35;">
-        — Barakah &amp; the KAHRÀH team
+      <p style="margin:0 0 26px;font-size:15px;line-height:1.65;color:#4A3B35;">
+        — The KAHRÀH team
       </p>
 
       <p style="margin:0;padding-top:18px;border-top:1px solid #E8DFD3;font-size:12px;line-height:1.6;color:#94A3B8;">
-        You're getting this because ${escapeHtml(entry.email)} was entered on the KAHRÀH
-        waitlist. If that wasn't you, just ignore this and you'll hear nothing more.
+        You're receiving this because ${escapeHtml(entry.email)} was entered on the KAHRÀH
+        waitlist. If that wasn't you, you can ignore this email.
       </p>
     </div>
   </body>
@@ -129,24 +126,40 @@ export function welcomeHtml(entry: WaitlistEntry): string {
 export function welcomeText(entry: WaitlistEntry): string {
   // A plain-text part improves deliverability and serves text-only clients.
   const isVendor = entry.role === "vendor";
+  const greeting = entry.first_name ? `Hi ${entry.first_name},` : "Hi there,";
+
+  const lines = isVendor
+    ? [
+        greeting,
+        "",
+        `Thanks for applying to sell on KAHRÀH. You're number ${entry.positionNumber} on the vendor list.`,
+        "",
+        "As a verified KAHRÀH vendor you get:",
+        "",
+        "- Your products listed with a KAHRÀH Verified badge, once ingredients and lab results are checked.",
+        "- Customers matched to you by their skin analysis — people already looking for what you make.",
+        "- No paid placement. Ranking is by ingredient fit, so you compete on formulation, not ad budget.",
+        "- First access to onboarding, before the marketplace opens publicly.",
+        "",
+        "We'll contact you directly when vendor onboarding opens, with what's needed to get verified.",
+      ]
+    : [
+        greeting,
+        "",
+        `Thanks for joining the KAHRÀH waitlist. You're number ${entry.positionNumber} in line.`,
+        "",
+        "KAHRÀH analyses your skin from a photo and matches you with products suited to it, chosen by ingredients rather than advertising.",
+        "",
+        "We'll email you once, when early access opens. Nothing before then.",
+      ];
+
   return [
-    entry.first_name ? `Hi ${entry.first_name},` : "Hi there,",
+    ...lines,
     "",
-    isVendor
-      ? "Thank you for putting your brand forward. We're building KAHRÀH to be a place where honest formulators get found by the people who actually need them."
-      : "Thank you, genuinely. Handing over your email is a small thing to do and a real thing to trust someone with, and we don't take it lightly.",
+    "— The KAHRÀH team",
     "",
-    `You're number ${entry.positionNumber} in line.`,
-    "",
-    isVendor
-      ? "When vendor onboarding opens we'll be in touch personally about getting your products verified and listed."
-      : "Here's what happens next: not much, for a little while. We won't crowd your inbox. When early access opens you'll get one email, and you'll be among the first to try the skin analysis.",
-    "",
-    "Thanks for being early.",
-    "— Barakah & the KAHRÀH team",
-    "",
-    `You're getting this because ${entry.email} was entered on the KAHRÀH waitlist.`,
-    "If that wasn't you, just ignore this and you'll hear nothing more.",
+    `You're receiving this because ${entry.email} was entered on the KAHRÀH waitlist.`,
+    "If that wasn't you, you can ignore this email.",
   ].join("\n");
 }
 
